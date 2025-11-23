@@ -1,0 +1,160 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  farmer
+  buyer
+}
+
+enum ListingStatus {
+  active
+  contracted
+  completed
+  cancelled
+}
+
+enum ContractStatus {
+  requested
+  accepted
+  in_progress
+  completed
+  cancelled
+}
+
+enum TransactionType {
+  income
+  expense
+}
+
+model User {
+  id                String    @id @default(uuid())
+  fullName          String    @db.VarChar(100)
+  email             String    @unique @db.VarChar(100)
+  phone             String    @unique @db.VarChar(15)
+  passwordHash      String    @map("password_hash") @db.VarChar(255)
+  role              UserRole
+  profilePictureUrl String?   @map("profile_picture_url") @db.VarChar(255)
+  isVerified        Boolean   @default(false) @map("is_verified")
+  isActive          Boolean   @default(true) @map("is_active")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  locations         UserLocation[]
+  bankDetails       BankDetails?
+  contractListings  ContractListing[] @relation("FarmerListings")
+  contractsAsFarmer Contract[]        @relation("FarmerContracts")
+  contractsAsBuyer  Contract[]        @relation("BuyerContracts")
+  transactions      Transaction[]
+
+  @@map("users")
+}
+
+model UserLocation {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  address   String?  @db.Text
+  city      String?  @db.VarChar(100)
+  state     String?  @db.VarChar(100)
+  pincode   String?  @db.VarChar(10)
+  latitude  Decimal? @db.Decimal(10, 8)
+  longitude Decimal? @db.Decimal(11, 8)
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listings  ContractListing[]
+
+  @@map("user_locations")
+}
+
+model BankDetails {
+  id              String  @id @default(uuid())
+  userId          String  @unique @map("user_id")
+  accountNumber   String  @map("account_number") @db.VarChar(20)
+  ifscCode        String  @map("ifsc_code") @db.VarChar(15)
+  bankName        String  @map("bank_name") @db.VarChar(100)
+  accountHolderName String @map("account_holder_name") @db.VarChar(100)
+  upiId           String? @map("upi_id") @db.VarChar(50)
+  isVerified      Boolean @default(false) @map("is_verified")
+
+  // Relations
+  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("bank_details")
+}
+
+model ContractListing {
+  id            String        @id @default(uuid())
+  farmerId      String        @map("farmer_id")
+  cropType      String        @map("crop_type") @db.VarChar(50)
+  quantity      Decimal       @db.Decimal(10, 2)
+  unit          String        @db.VarChar(20)
+  expectedPrice Decimal       @map("expected_price") @db.Decimal(10, 2)
+  description   String?       @db.Text
+  harvestDate   DateTime?     @map("harvest_date") @db.Date
+  images        Json?         // Array of image URLs
+  locationId    String?       @map("location_id")
+  status        ListingStatus @default(active)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  farmer        User          @relation("FarmerListings", fields: [farmerId], references: [id], onDelete: Cascade)
+  location      UserLocation? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  contracts     Contract[]
+
+  @@map("contract_listings")
+}
+
+model Contract {
+  id          String         @id @default(uuid())
+  listingId   String         @map("listing_id")
+  farmerId    String         @map("farmer_id")
+  buyerId     String         @map("buyer_id")
+  cropType    String         @map("crop_type") @db.VarChar(50)
+  quantity    Decimal        @db.Decimal(10, 2)
+  agreedPrice Decimal        @map("agreed_price") @db.Decimal(10, 2)
+  totalAmount Decimal        @map("total_amount") @db.Decimal(10, 2)
+  status      ContractStatus @default(requested)
+  terms       String?        @db.Text
+  deliveryDate DateTime?     @map("delivery_date") @db.Date
+  completedAt  DateTime?     @map("completed_at")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  listing     ContractListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  farmer      User            @relation("FarmerContracts", fields: [farmerId], references: [id], onDelete: Cascade)
+  buyer       User            @relation("BuyerContracts", fields: [buyerId], references: [id], onDelete: Cascade)
+
+  @@map("contracts")
+}
+
+model Transaction {
+  id              String          @id @default(uuid())
+  userId          String          @map("user_id")
+  type            TransactionType
+  category        String          @db.VarChar(50)
+  amount          Decimal         @db.Decimal(10, 2)
+  description     String?         @db.VarChar(255)
+  referenceId     String?         @map("reference_id") @db.VarChar(100)
+  referenceType   String?         @map("reference_type") @db.VarChar(50)
+  transactionDate DateTime        @map("transaction_date") @db.Date
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("transactions")
+}
+

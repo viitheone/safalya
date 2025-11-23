@@ -1,0 +1,45 @@
+### GET /
+GET http://localhost:3000
+
+### register endpoint POST /auth/register
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+    "fullName": "Vivek Kumar",
+    "email": "vivek@example.com",
+    "phone": "9876543210",
+    "password": "SecurePass@123",
+    "role": "farmer"
+}
+
+### login endpoint POST /auth/login
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+    "email": "vivek@example.com",
+    "password": "SecurePass@123"
+}
+
+### Fetch all todos GET /TODOS (protected)
+GET http://localhost:3000/todos
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiaWF0IjoxNzU5NjA3MTY4LCJleHAiOjE3NTk2OTM1Njh9.KgODMXs8pM92_gpsy8QqcRANJZOij9qh573pmEqVV9E
+
+### Create a new todo POST /TODOS (protected)
+POST http://localhost:3000/todos
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiaWF0IjoxNzU5NjA3MTY4LCJleHAiOjE3NTk2OTM1Njh9.KgODMXs8pM92_gpsy8QqcRANJZOij9qh573pmEqVV9E
+Content-Type: application/json
+
+{
+    "task": "Finish the DBMS Assignment."
+}
+
+### Update a todo PUT /TODOS:ID (protected)
+PUT http://localhost:3000/todos/2?page=1
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiaWF0IjoxNzU5NjA3MTY4LCJleHAiOjE3NTk2OTM1Njh9.KgODMXs8pM92_gpsy8QqcRANJZOij9qh573pmEqVV9E
+Content-Type: application/json
+
+{
+    "completed": 1
+}
