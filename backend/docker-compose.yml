@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: safalya-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-safalya}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-safalya123}
+      POSTGRES_DB: ${POSTGRES_DB:-safalya}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-safalya}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - safalya-network
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: safalya-backend
+    restart: unless-stopped
+    environment:
+      # Database
+      DATABASE_URL: postgresql://${POSTGRES_USER:-safalya}:${POSTGRES_PASSWORD:-safalya123}@postgres:5432/${POSTGRES_DB:-safalya}?schema=public
+      
+      # JWT
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-this-in-production}
+      JWT_ACCESS_EXPIRY: ${JWT_ACCESS_EXPIRY:-24h}
+      JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY:-30d}
+      
+      # Server
+      PORT: ${PORT:-3000}
+      NODE_ENV: ${NODE_ENV:-production}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - ./uploads:/app/uploads
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - safalya-network
+    command: >
+      sh -c "
+        echo 'Waiting for database to be ready...' &&
+        npx prisma migrate deploy &&
+        echo 'Migrations completed!' &&
+        node index.js
+      "
+
+networks:
+  safalya-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+

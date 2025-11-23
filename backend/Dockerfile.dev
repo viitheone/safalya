@@ -1,0 +1,33 @@
+# Development Dockerfile with nodemon for hot-reload
+FROM node:20-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install Prisma CLI globally
+RUN npm install -g prisma@^6.15.0
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev dependencies)
+RUN npm ci
+
+# Copy Prisma schema
+COPY prisma ./prisma
+
+# Generate Prisma Client
+RUN npx prisma generate
+
+# Copy application code
+COPY . .
+
+# Create uploads directory
+RUN mkdir -p uploads
+
+# Expose port
+EXPOSE 3000
+
+# Start with nodemon for development
+CMD ["npm", "run", "dev"]
+
